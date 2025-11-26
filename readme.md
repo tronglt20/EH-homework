@@ -38,6 +38,21 @@ A distributed event logging system designed to decouple log generation from pers
 └─────────────────────────────────────┘
 ```
 
+```
+
+### Technology Choices
+
+#### RabbitMQ
+We chose RabbitMQ as the message broker because:
+- **Development Efficiency**: It is open-source, free to use, and easy to set up, making it ideal for the development phase.
+- **Performance**: It provides low-latency message delivery, ensuring that logging does not slow down the client services.
+- **Reliability**: It offers robust queuing mechanisms to handle bursts of log events without data loss.
+
+#### MongoDB
+We chose MongoDB as the database because:
+- **Flexibility**: Its schema-less nature allows us to store log events with varying structures.
+- **Read Performance**: It excels at read-heavy workloads where data is frequently accessed
+
 ### Docker Compose Infrastructure
 
 The system is containerized using Docker Compose with the following services:
@@ -100,3 +115,15 @@ To verify the system is working, you can run the `simulate_service_a.rb` script.
 - `logging_consumer/`: The Rails application (Worker + API).
 - `simulate_service_a/`: A script to simulate a client service sending logs.
 - `docker-compose.yml`: Docker Compose configuration.
+
+## Future Enhancements
+
+### Scaling with Multiple Consumers
+To handle high traffic volumes and improve write performance, we can scale the system by running multiple instances of the `worker` service.
+- **Horizontal Scaling**: RabbitMQ supports multiple consumers on the same queue. By adding more `worker` containers, we can process messages in parallel, significantly increasing the throughput of log ingestion.
+- **Load Balancing**: RabbitMQ automatically distributes messages among available consumers, ensuring an even load distribution.
+
+### Database Read/Write Separation
+To further optimize performance, we can separate the database into read and write operations:
+- **Write Optimization**: The primary MongoDB instance can be dedicated to writing logs from the consumers.
+- **Read Optimization**: We can use MongoDB replicas for read operations (querying logs via the API). This offloads the read traffic from the primary node, ensuring that heavy query loads do not impact the write performance of the logging system.
