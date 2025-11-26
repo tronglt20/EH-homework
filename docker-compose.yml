@@ -16,7 +16,7 @@ services:
     volumes:
       - mongodb_data:/data/db
 
-  logging_consumer:
+  web:
     build: ./logging_consumer
     command: bash -c "rm -f tmp/pids/server.pid && bundle exec rails s -b '0.0.0.0'"
     volumes:
@@ -24,29 +24,27 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      rabbitmq:
-        condition: service_healthy
-      mongodb:
-        condition: service_healthy
+      - rabbitmq
+      - mongodb
     environment:
       MONGODB_URI: mongodb://mongodb:27017/logging_consumer
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
       LOG_QUEUE_NAME: log_events
+      RAILS_ENV: development
 
-  logger_service:
-    build: ./logger_service
+  worker:
+    build: ./logging_consumer
     command: bundle exec rake consumer:start
     volumes:
-      - ./logger_service:/app
+      - ./logging_consumer:/app
     depends_on:
-      rabbitmq:
-        condition: service_healthy
-      mongodb:
-        condition: service_healthy
+      - rabbitmq
+      - mongodb
     environment:
       MONGODB_URI: mongodb://mongodb:27017/logging_consumer
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
       LOG_QUEUE_NAME: log_events
+      RAILS_ENV: development
 
 volumes:
   mongodb_data:
