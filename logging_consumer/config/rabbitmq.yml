@@ -1,0 +1,3 @@
+development:
+  url: <%= ENV['RABBITMQ_URL'] %>
+  queue_name: <%= ENV['LOG_QUEUE_NAME'] %>

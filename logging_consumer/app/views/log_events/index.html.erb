@@ -1,0 +1,50 @@
+<%# app/views/log_events/index.html.erb %>
+
+<h1>Event Log Viewer</h1>
+
+<div class="search-form">
+  <%= form_with(url: search_path, method: :get) do |form| %>
+    <%= form.label :keyword, "Searching for...:" %>
+    <%= form.text_field :keyword, value: params[:keyword] %>
+    <%= form.submit "Submit" %>
+  <% end %>
+</div>
+
+<hr>
+
+<div class="results">
+  <h2>Result (<%= @logs.count %>)</h2>
+  <% if @logs.any? %>
+    <table>
+      <thead>
+      <tr>
+        <th>Timestamp</th>
+        <th>Source</th>
+        <th>Message</th>
+        <th>Metadata</th>
+      </tr>
+      </thead>
+      <tbody>
+      <% @logs.each do |log| %>
+        <tr>
+          <td><%= log.timestamp.strftime('%Y-%m-%d %H:%M:%S') %></td>
+          <td><%= log.source %></td>
+          <td><%= log.message %></td>
+          <td><%= JSON.pretty_generate(log.metadata) %></td>
+        </tr>
+      <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p>Not found.</p>
+  <% end %>
+</div>
+
+<style>
+    body { font-family: sans-serif; padding: 20px; }
+    .search-form { margin-bottom: 20px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background-color: #f2f2f2; }
+    tr:nth-child(even) { background-color: #f9f9f9; }
+</style>
