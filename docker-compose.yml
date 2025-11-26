@@ -1,0 +1,52 @@
+version: '3.8'
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+
+  mongodb:
+    image: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+
+  logging_consumer:
+    build: ./logging_consumer
+    command: bash -c "rm -f tmp/pids/server.pid && bundle exec rails s -b '0.0.0.0'"
+    volumes:
+      - ./logging_consumer:/app
+    ports:
+      - "3000:3000"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017/logging_consumer
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      LOG_QUEUE_NAME: log_events
+
+  logger_service:
+    build: ./logger_service
+    command: bundle exec rake consumer:start
+    volumes:
+      - ./logger_service:/app
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017/logging_consumer
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      LOG_QUEUE_NAME: log_events
+
+volumes:
+  mongodb_data:
