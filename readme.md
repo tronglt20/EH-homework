@@ -51,7 +51,7 @@ Choosing MongoDB as the database because:
 - **Read Performance**: It excels at read-heavy workloads where data is frequently accessed
 
 ### Docker Compose Infrastructure
-
+ 
 The system is containerized using Docker Compose with the following services:
 
 - **rabbitmq**: Message broker for queuing log events.
