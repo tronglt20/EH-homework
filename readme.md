@@ -1,79 +1,102 @@
-# Event Logging Service - Planning Document
+# Event Logging Service
 
 ## Overview
-Design and implement a distributed event logging system with two main components:
-1. **LoggerService** - A Ruby gem library that services can install to push log events to a queue
-2. **LoggingConsumer** - A worker service that consumes events from the queue, persists them to a database, and provides a query API
+A distributed event logging system designed to decouple log generation from persistence. It consists of a Ruby gem for services to emit logs and a centralized worker service that consumes logs from a queue and persists them to MongoDB.
 
-## Architecture Overview
+## Architecture
 
 ### High-Level Design
 
 ```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│  Service A  │     │  Service B  │     │  Service C  │
-│             │     │             │     │             │
-│ LoggerService│    │ LoggerService│    │ LoggerService│
-│    (gem)    │     │    (gem)    │     │    (gem)    │
-└──────┬──────┘     └──────┬──────┘     └──────┬──────┘
-       │                   │                   │
-       └───────────────────┴───────────────────┘
-                          │
-                          │ Push events
-                          ▼
-                   ┌──────────────┐
-                   │  RabbitMQ    │
-                   │   (Queue)    │
-                   └──────┬───────┘
-                          │
-                          │ Pull events
-                          ▼
-              ┌───────────────────────┐
-              │ LoggingConsumer       │
-              │  (Worker + API)       │
-              │                       │
-              │  - Consume from queue │
-              │  - Save to MongoDB    │
-              │  - Query API          │
-              └───────────────────────┘
-                          │
-                          ▼
-                   ┌──────────────┐
-                   │   MongoDB    │
-                   │  (Database)  │
-                   └──────────────┘
+┌─────────────┐     ┌─────────────┐
+│  Service A  │     │  Service B  │
+│ (Simulator) │     │             │
+│ LoggerService│    │ LoggerService│
+│    (gem)    │     │    (gem)    │
+└──────┬──────┘     └──────┬──────┘
+       │                   │
+       │ Push events       │
+       ▼                   ▼
+┌─────────────────────────────────────┐
+│             RabbitMQ                │
+│             (Queue)                 │
+└──────────────────┬──────────────────┘
+                   │
+                   │ Pull events
+                   ▼
+┌─────────────────────────────────────┐
+│         LoggingConsumer             │
+│        (Worker + API)               │
+│ - Consumes from RabbitMQ            │
+│ - Persists to MongoDB               │
+└──────────────────┬──────────────────┘
+                   │
+                   ▼
+┌─────────────────────────────────────┐
+│             MongoDB                 │
+│            (Database)               │
+└─────────────────────────────────────┘
 ```
 
-### Components
+### Docker Compose Infrastructure
 
-#### 1. LoggerService (Gem Library)
-- **Purpose**: Lightweight gem that services can install
-- **Functionality**:
-    - Expose simple logging function/method
-    - Push log events to RabbitMQ queue
-    - Handle connection management
-    - Provide configuration options
-- **Usage**: Services A, B, C install this gem and use it to log events
+The system is containerized using Docker Compose with the following services:
 
-#### 2. LoggingConsumer (Worker Service)
-- **Purpose**: Centralized service for log persistence and querying
-- **Functionality**:
-    - Consume events from RabbitMQ queue
-    - Persist logs to MongoDB
-    - Provide REST API for querying logs
-    - Handle errors and retries
+- **rabbitmq**: Message broker for queuing log events.
+- **mongodb**: Database for storing log events.
+- **web**: The Rails application serving the API (running `rails server`).
+- **worker**: The background worker consuming messages from RabbitMQ (running `rake consumer:start`).
 
-### Technology Stack
+## Getting Started
 
-#### LoggerService (Gem)
-- **Language**: Ruby
-- **Dependencies**:
-    - `bunny` (RabbitMQ client)
-    - `json` (for message serialization)
+### Prerequisites
+- Docker and Docker Compose
 
-#### LoggingConsumer (Rails App)
-- **Language**: Ruby
-- **Framework**: Rails
-- **Database**: MongoDB (using Mongoid or Mongo gem)
-- **Queue**: RabbitMQ (using `bunny` for consumer)
-- **API**: RESTful Rails API
+### Running the System
+
+1. **Build and start the services:**
+   ```bash
+   docker-compose up --build
+   ```
+
+2. **Verify the services are running:**
+   - RabbitMQ Management: [http://localhost:15672](http://localhost:15672) (User: `guest`, Pass: `guest`)
+   - Rails API: [http://localhost:3000](http://localhost:3000)
+
+## Testing with Simulator
+
+To verify the system is working, you can run the `simulate_service_a.rb` script. This script uses the `logger_service` gem to push sample events to the RabbitMQ queue.
+
+### Prerequisites for Simulator
+- Ruby (>= 3.2.0)
+- Bundler
+
+### Running the Simulator
+
+1. **Navigate to the `logger_service` directory:**
+   ```bash
+   cd logger_service
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   bundle install
+   ```
+
+3. **Run the simulator script:**
+   We run the script using `bundle exec` to ensure all gem dependencies (like `bunny`) are available, and include the `lib` directory in the load path so it can find the `logger_service` code.
+
+   ```bash
+   bundle exec ruby -I lib ../simulate_service_a/simulate_service_a.rb
+   ```
+
+4. **Verify the logs:**
+   - Check the output of the **worker** service in your Docker Compose terminal. You should see logs indicating that events were processed.
+   - Connect to MongoDB to verify the documents were created.
+
+## Project Structure
+
+- `logger_service/`: The Ruby gem used by client services.
+- `logging_consumer/`: The Rails application (Worker + API).
+- `simulate_service_a/`: A script to simulate a client service sending logs.
+- `docker-compose.yml`: Docker Compose configuration.
