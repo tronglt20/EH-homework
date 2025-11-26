@@ -38,18 +38,15 @@ A distributed event logging system designed to decouple log generation from pers
 └─────────────────────────────────────┘
 ```
 
-```
 
 ### Technology Choices
 
 #### RabbitMQ
-We chose RabbitMQ as the message broker because:
+Choosing RabbitMQ as the message broker because:
 - **Development Efficiency**: It is open-source, free to use, and easy to set up, making it ideal for the development phase.
-- **Performance**: It provides low-latency message delivery, ensuring that logging does not slow down the client services.
-- **Reliability**: It offers robust queuing mechanisms to handle bursts of log events without data loss.
 
 #### MongoDB
-We chose MongoDB as the database because:
+Choosing MongoDB as the database because:
 - **Flexibility**: Its schema-less nature allows us to store log events with varying structures.
 - **Read Performance**: It excels at read-heavy workloads where data is frequently accessed
 
